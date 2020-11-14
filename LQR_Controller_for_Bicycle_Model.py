@@ -34,7 +34,12 @@ def get_bicycle_func(u, model):
         e2_dot_dot = (-(2*Cf*lf - 2*Cr*lr) / (Iz*Vx)) * x[1] + ((2*Cf*lf - 2*Cr*lr) / Iz) * x[2] + \
             -((2*Cf*(lf**2) + 2*Cr*(lr**2)) / (Iz*Vx)) * x[3] + ((2*Cf*lf) / Iz) * u
         
-        return [e1_dot, e1_dot_dot, e2_dot, e2_dot_dot]
+        dx = np.array([e1_dot,
+                       e1_dot_dot,
+                       e2_dot,
+                       e2_dot_dot]).T
+        
+        return dx
     return bicycle_func
 
 # Performs LQR on a state space model.
@@ -157,14 +162,14 @@ with open("optimalPathData.csv", 'r', newline = '') as optimalPathDataFile:
     x_data = []
     y_data = []
     
+    for row in reader:
+        x_data.append(float(row[0]))
+        y_data.append(float(row[1]))
+    
     # Get highest index of each data array (to be used later)
     # (Assuming x- and y- data sets will be of same length)
     last_point_in_path = len(x_data) - 1
     
-    for row in reader:
-        x_data.append(float(row[0]))
-        y_data.append(float(row[1]))
-        
     # Debug line
     # print(x_data)
     
@@ -262,14 +267,20 @@ drawBicycle(yawAngle, x_g, y_g)
 # Use LQR to guide vehicle to satisfactory position and orientation.
 dt = 0.1
 K = finite_horizon_lqr(A, B, Q, R, Q, 20.0, dt)
-tracker = 0;
-while (tracker != last_point_in_path):
+tracker = 0;                                  # Escape flag for while loop. Turns on when path, assumed loop, returns to start
+
+"""
+while (tracker != 1):
     # Reset index counters for current and next point on path if either reaches
     # last point in path (returns to start of path -- LOGIC ONLY WORKS FOR looping  paths)
     if (currentPt == last_point_in_path):   
         currentPt = 0
+        tracker = 1                           # Turn flag to value that terminates while loop
     elif(nextPt == last_point_in_path):
         nextPt = 0  
+        
+    # u = K * e
+    # CHECK WITH JOSH: ISN'T IT SUPPOSED TO BE NEGATIVE K?
         
     # Update inputs to guide system to desired state
     u = -K * x
@@ -300,3 +311,8 @@ while (tracker != last_point_in_path):
     
     # Draw the position and orientation of the bicycle in our plot (bicycle appears as red line):
     drawBicycle(yawAngle, x_g, y_g)
+ 
+"""
+
+
+
