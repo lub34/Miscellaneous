@@ -4,6 +4,8 @@ import math
 import csv
 import matplotlib.pyplot as plt
 
+# fig = plt.figure()
+
 # Values of various properties for the bicycle model discussed in section 2 of Rajesh Rajamani's textbook.
 class BicycleModel:
     # ASK JOSH HOW TO DEFINE THESE CONSTANTS ONCE AS GLOBAL VARIABLES THEN USE IN MAIN CODE AND THIS FUNCTION
@@ -14,7 +16,7 @@ class BicycleModel:
     lf = 1.54                              # Length btwn vehicle's c.g. and front axle c.g. [m]
     lr = 2.554                             # Length btwn vehicle's c.g. and rear axle c.g. [m]
     Vx = 80                                # Vehicle's longitudinal velocity [m/s]
-    Iz = 600                               # Vehcile's yaw moment of inertia (GUESSED FOR NOW)
+    Iz = 550                               # Vehcile's yaw moment of inertia (From ANSYS Simulation)
 
 # Updates the vehicle's states.
 def get_bicycle_func(u, model):
@@ -103,6 +105,17 @@ def finite_horizon_lqr(A, B, Q, R, Q_f, horizon, d_t ):
         # ))
     return np.flip(np.array(Ps))
 
+def drawPath(X_data, Y_data):
+    # Clear figure
+    plt.clf()
+    # plt.axes.plot(X_data, Y_data, s = 1)
+    plt.scatter(X_data, Y_data, s = 1)
+    plt.xlabel('X')
+    plt.ylabel('Y')
+    plt.title('Sample Path to Test Bicycle Controller On')
+    plt.legend()
+    return None
+
 """
 Draws new position of the vehicle in 2D space as a red line.
 Parameters:
@@ -111,7 +124,8 @@ Parameters:
     - x_g = Global x-position of the vehicle's center of gravity
     - y_g = Global y-position of the vehicle's center of gravity
 """
-def drawBicycle(yaw, X_g, Y_g):
+def drawBicycle(yaw, X_g, Y_g, block = True, dt = 0.1):
+    
     # dx_f = lf*sin(yaw); dx_f = change in x between vehicle's global CG and its front axle CG location.
 
     # (dx_f, dy_f) = position of front axle's CG relative to bicycle's CG.
@@ -139,7 +153,9 @@ def drawBicycle(yaw, X_g, Y_g):
     x_axle_values = [x_r, x_f]
     y_axle_values = [y_r, y_f]
     plt.plot(x_axle_values, y_axle_values, 'r')
-    plt.show()
+    plt.show(block = block)
+    if not block:
+        plt.pause(dt)
     return None
 
 #-------------------------------------------------------------------------------------------
@@ -173,11 +189,8 @@ with open("optimalPathData.csv", 'r', newline = '') as optimalPathDataFile:
     # Debug line
     # print(x_data)
     
-    plt.scatter(x_data, y_data, s = 1)
-    plt.xlabel('X')
-    plt.ylabel('Y')
-    plt.title('Sample Path to Test Bicycle Controller On')
-    plt.legend()
+    # Draw path
+    drawPath(x_data, y_data)
     
     """
     # Run this to see the data in the csv file
@@ -262,7 +275,7 @@ yawAngle = x[2] + goal_yaw                   # yaw = e2 + desired yaw
 yawAngle = math.remainder(yawAngle, (math.pi / 2) )
 
 # Draw the position and orientation of the bicycle in our plot (bicycle appears as red line):
-drawBicycle(yawAngle, x_g, y_g)
+drawBicycle(yawAngle, x_g, y_g, block = False)
 
 # Use LQR to guide vehicle to satisfactory position and orientation.
 dt = 0.1
@@ -270,7 +283,19 @@ K = finite_horizon_lqr(A, B, Q, R, Q, 20.0, dt)
 tracker = 0;                                  # Escape flag for while loop. Turns on when path, assumed loop, returns to start
 
 """
-while (tracker != 1):
+# Draw path
+drawPath(x_data, y_data)
+# Define initial (x,y) point of bicycle's CG -- pt. G (will be updated in loop)
+x_g = 100
+y_g = 0.12
+# Draw the position and orientation of the bicycle in our plot (bicycle appears as red line):
+drawBicycle(yawAngle, x_g, y_g)
+"""
+
+testFlag = 10
+# while (tracker == testFlag):
+for i in range(20):
+    print(i)
     # Reset index counters for current and next point on path if either reaches
     # last point in path (returns to start of path -- LOGIC ONLY WORKS FOR looping  paths)
     if (currentPt == last_point_in_path):   
@@ -309,10 +334,15 @@ while (tracker != 1):
     x_g = x_data[currentPt] - e1*math.sin(yawAngle)
     y_g = y_data[currentPt] + e1*math.cos(yawAngle)
     
+    
+    # Draw path
+    drawPath(x_data, y_data)
     # Draw the position and orientation of the bicycle in our plot (bicycle appears as red line):
-    drawBicycle(yawAngle, x_g, y_g)
+    drawBicycle(yawAngle, x_g, y_g, block = False, dt = dt)
+    
+
  
-"""
+
 
 
 
