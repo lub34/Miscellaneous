@@ -4,7 +4,7 @@ import math
 import csv
 import matplotlib.pyplot as plt
 
-# fig = plt.figure()
+fig = plt.figure()
 
 # Values of various properties for the bicycle model discussed in section 2 of Rajesh Rajamani's textbook.
 class BicycleModel:
@@ -41,7 +41,7 @@ def get_bicycle_func(u, model):
                        e2_dot,
                        e2_dot_dot]).T
         
-        return dx
+        return dx.T
     return bicycle_func
 
 # Performs LQR on a state space model.
@@ -103,7 +103,7 @@ def finite_horizon_lqr(A, B, Q, R, Q_f, horizon, d_t ):
         #     time,
         #     norm_dp
         # ))
-    return np.flip(np.array(Ps))
+    return np.linalg.inv(R) @ B.T @ P_n
 
 def drawPath(X_data, Y_data):
     # Clear figure
@@ -280,7 +280,7 @@ drawBicycle(yawAngle, x_g, y_g, block = False)
 # Use LQR to guide vehicle to satisfactory position and orientation.
 dt = 0.1
 K = finite_horizon_lqr(A, B, Q, R, Q, 20.0, dt)
-tracker = 0;                                  # Escape flag for while loop. Turns on when path, assumed loop, returns to start
+tracker = 0                                  # Escape flag for while loop. Turns on when path, assumed loop, returns to start
 
 """
 # Draw path
@@ -306,23 +306,36 @@ for i in range(20):
         
     # u = K * e
     # CHECK WITH JOSH: ISN'T IT SUPPOSED TO BE NEGATIVE K?
-        
+    print('K.shape' + str(K.shape))
+    print('K = ' + str(K))
+
     # Update inputs to guide system to desired state
-    u = -K * x
+    u = (K @ x)[0][0]
     
-    # Get change in state variables
+    # Get change in state variables NO PROBLEM WITH THIS LINE
     dx = get_bicycle_func(u, vehicleData)
-      
-    # Update state
-    x = step_continuous_func(dx, x, dt)
     
+    # print("dt = " + str(dt))
+    print("u = " + str(u))
+    print("dx(x) = ")
+    print(dx(x))
+
+    # print("dx(x) = " + str(dx(x)))
+    
+    # PROBLEM IS AT LINE 319 AS OF 11/17/2020
+    # Update state
+    x, dx_norm = step_continuous_func(dx, x, dt)
+    
+    print("x.shape = " + str(x.shape))
+    print("x = " + str(x))
+
     # Update path data index trackers:
     currentPt += 1
     nextPt += 1
     
     # Update goal (desired) yaw angle
     goal_yaw = math.atan((y_data[nextPt] - y_data[currentPt]) / (x_data[nextPt] - x_data[currentPt]))
-        
+
     # Update state e1 and yaw angle outside of the 1D array
     e1 = x[0]
     yawAngle = x[2] + goal_yaw                   # yaw = e2 + desired yaw
@@ -334,7 +347,6 @@ for i in range(20):
     x_g = x_data[currentPt] - e1*math.sin(yawAngle)
     y_g = y_data[currentPt] + e1*math.cos(yawAngle)
     
-    
     # Draw path
     drawPath(x_data, y_data)
     # Draw the position and orientation of the bicycle in our plot (bicycle appears as red line):
@@ -342,7 +354,3 @@ for i in range(20):
     
 
  
-
-
-
-
