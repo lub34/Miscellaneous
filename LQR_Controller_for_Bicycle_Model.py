@@ -3,6 +3,7 @@ import numpy as np
 import math
 import csv
 import matplotlib.pyplot as plt
+import time
 
 fig = plt.figure()
 
@@ -15,7 +16,7 @@ class BicycleModel:
     m = 761                                # Total mass of vehicle [kg] (CHECK: Add wheel masses and fuel mass?)
     lf = 1.54                              # Length btwn vehicle's c.g. and front axle c.g. [m]
     lr = 2.554                             # Length btwn vehicle's c.g. and rear axle c.g. [m]
-    Vx = 80                                # Vehicle's longitudinal velocity [m/s]
+    Vx = 90                                # Vehicle's longitudinal velocity [m/s]
     Iz = 550                               # Vehcile's yaw moment of inertia (From ANSYS Simulation)
 
 # Updates the vehicle's states.
@@ -108,12 +109,16 @@ def finite_horizon_lqr(A, B, Q, R, Q_f, horizon, d_t ):
 def drawPath(X_data, Y_data):
     # Clear figure
     plt.clf()
-    # plt.axes.plot(X_data, Y_data, s = 1)
     plt.scatter(X_data, Y_data, s = 1)
     plt.xlabel('X')
     plt.ylabel('Y')
     plt.title('Sample Path to Test Bicycle Controller On')
-    plt.legend()
+    """
+    left, right = plt.xlim()  # return the current xlim
+    bottom, top = plt.ylim()  # return the current ylim
+    plt.xlim(left + 0.25*left, right + 0.25*right)    
+    plt.ylim(bottom + 0.25*bottom, top + 0.25*top)    
+    """
     return None
 
 """
@@ -132,15 +137,16 @@ def drawBicycle(yaw, X_g, Y_g, block = True, dt = 0.1):
     # (dx_r, dy_r) = position of rear axle's CG relative to bicycle's CG.
     # a is the distance from the CG to the front axle CG (not to scale -- just so visible on graph).
     # b is the distance from the CG to the rear axle CG (not to scale -- just so visible on graph).
-    a = 20
-    b = 30
+    a = 30
+    b = 50
     
-    dx_f = a*math.sin(yaw)
-    dy_f = a*math.cos(yaw)
+    # CHANGED: As of 11/18/2020, swapped the sin and cos calls here b/c of figure 2-12 in Rajesh (do for following block too)
+    dx_f = a*math.cos(yaw)
+    dy_f = a*math.sin(yaw)
     
     # Potential bug: Yaw being defined from [pi,-pi] could screw up math here, messing vehicle's orientation
-    dx_r = b*math.sin(math.pi + yaw)
-    dy_r = b*math.cos(math.pi + yaw)
+    dx_r = b*math.cos(math.pi + yaw)
+    dy_r = b*math.sin(math.pi + yaw)
     
     # Solve for the global locations of each axle's CG
     x_f = X_g + dx_f
@@ -150,9 +156,15 @@ def drawBicycle(yaw, X_g, Y_g, block = True, dt = 0.1):
     y_r = Y_g + dy_r
     
     # Finally, plot the bicycle's initial position and orientation:
-    x_axle_values = [x_r, x_f]
-    y_axle_values = [y_r, y_f]
-    plt.plot(x_axle_values, y_axle_values, 'r')
+    # x_axle_values = [x_r, x_f]
+    # y_axle_values = [y_r, y_f]
+    x_cg_to_frontAxle = [X_g, x_f]
+    y_cg_to_frontAxle = [Y_g, y_f]
+    x_cg_to_rearAxle = [X_g, x_r]
+    y_cg_to_rearAxle = [Y_g, y_r]
+    # plt.plot(x_axle_values, y_axle_values, 'r')
+    plt.plot(x_cg_to_frontAxle, y_cg_to_frontAxle, 'k', linewidth = 5)         # Line from vehicle's CG to front axle is black
+    plt.plot(x_cg_to_rearAxle, y_cg_to_rearAxle, 'r',  linewidth = 5)           # Line from vehicle's CG to rear axle is red
     plt.show(block = block)
     if not block:
         plt.pause(dt)
@@ -186,18 +198,9 @@ with open("optimalPathData.csv", 'r', newline = '') as optimalPathDataFile:
     # (Assuming x- and y- data sets will be of same length)
     last_point_in_path = len(x_data) - 1
     
-    # Debug line
-    # print(x_data)
-    
     # Draw path
     drawPath(x_data, y_data)
     
-    """
-    # Run this to see the data in the csv file
-    # For isolating a single COLUMN (in this case, the first one)
-    for row in reader:
-        print(''.join(row[0] + ' ' + row[1]))
-    """
 #---------------------------------------------------------------------------------------------------
 #---------------------------------------------------------------------------------------------------
 
@@ -253,8 +256,9 @@ y_g = 0.0005
 # yaw = yaw angle of bike; an orientation angle [rads].
 x = np.array([[0.5,
                1,
-               0.524,
+               -0.0146114,
                -0.1]]).T
+
 
 # Initialize index of desired current and next point along path:
 currentPt = 0
@@ -267,12 +271,13 @@ goal_yaw = math.atan((y_data[nextPt] - y_data[currentPt]) / (x_data[nextPt] - x_
 # For readability, initialize state e1 and yaw angle outside of the 1D array
 e1 = x[0]
 yawAngle = x[2] + goal_yaw                   # yaw = e2 + desired yaw
+yawAngle = -2.4
 
 # Convert yawAngle to a value between -pi/2 and pi/2 if not already:
 # Note: math.remainder(z,w) divides z by w. The remaider is returned with one caveat,
 # if remainder is >= w/2 then it is returned negative. Hence, the following usage of it
 # will return an angle in rads between [-pi, pi].
-yawAngle = math.remainder(yawAngle, (math.pi / 2) )
+# yawAngle = math.remainder(yawAngle, (math.pi / 2) )
 
 # Draw the position and orientation of the bicycle in our plot (bicycle appears as red line):
 drawBicycle(yawAngle, x_g, y_g, block = False)
@@ -281,21 +286,9 @@ drawBicycle(yawAngle, x_g, y_g, block = False)
 dt = 0.1
 K = finite_horizon_lqr(A, B, Q, R, Q, 20.0, dt)
 tracker = 0                                  # Escape flag for while loop. Turns on when path, assumed loop, returns to start
+t_start = time.time()
 
-"""
-# Draw path
-drawPath(x_data, y_data)
-# Define initial (x,y) point of bicycle's CG -- pt. G (will be updated in loop)
-x_g = 100
-y_g = 0.12
-# Draw the position and orientation of the bicycle in our plot (bicycle appears as red line):
-drawBicycle(yawAngle, x_g, y_g)
-"""
-
-testFlag = 10
-# while (tracker == testFlag):
-for i in range(20):
-    print(i)
+while (tracker != 1):
     # Reset index counters for current and next point on path if either reaches
     # last point in path (returns to start of path -- LOGIC ONLY WORKS FOR looping  paths)
     if (currentPt == last_point_in_path):   
@@ -303,54 +296,44 @@ for i in range(20):
         tracker = 1                           # Turn flag to value that terminates while loop
     elif(nextPt == last_point_in_path):
         nextPt = 0  
-        
-    # u = K * e
-    # CHECK WITH JOSH: ISN'T IT SUPPOSED TO BE NEGATIVE K?
-    print('K.shape' + str(K.shape))
-    print('K = ' + str(K))
 
     # Update inputs to guide system to desired state
-    u = (K @ x)[0][0]
+    u = (-K @ x)[0][0]
     
-    # Get change in state variables NO PROBLEM WITH THIS LINE
+    # Get change in state variables 
     dx = get_bicycle_func(u, vehicleData)
-    
-    # print("dt = " + str(dt))
-    print("u = " + str(u))
-    print("dx(x) = ")
-    print(dx(x))
 
-    # print("dx(x) = " + str(dx(x)))
-    
-    # PROBLEM IS AT LINE 319 AS OF 11/17/2020
     # Update state
     x, dx_norm = step_continuous_func(dx, x, dt)
-    
-    print("x.shape = " + str(x.shape))
-    print("x = " + str(x))
 
     # Update path data index trackers:
     currentPt += 1
     nextPt += 1
     
     # Update goal (desired) yaw angle
-    goal_yaw = math.atan((y_data[nextPt] - y_data[currentPt]) / (x_data[nextPt] - x_data[currentPt]))
+    goal_yaw = math.atan2((y_data[nextPt] - y_data[currentPt]) , (x_data[nextPt] - x_data[currentPt]))
 
     # Update state e1 and yaw angle outside of the 1D array
     e1 = x[0]
     yawAngle = x[2] + goal_yaw                   # yaw = e2 + desired yaw
     
     # Convert yawAngle to a value between -pi/2 and pi/2 if not already:
-    yawAngle = math.remainder(yawAngle, (math.pi / 2) )
+    # yawAngle = math.remainder(yawAngle, (math.pi / 2) )
     
     # Update the position of the vehicle's CG:
     x_g = x_data[currentPt] - e1*math.sin(yawAngle)
     y_g = y_data[currentPt] + e1*math.cos(yawAngle)
     
+    # Get time it took to perform state update this iteration
+    t_end = time.time()
+    timeForIteration = 0.00001
+    if ((t_end - t_start) < dt):
+        timeForIteration = (dt - (t_end - t_start))
+    
     # Draw path
     drawPath(x_data, y_data)
     # Draw the position and orientation of the bicycle in our plot (bicycle appears as red line):
-    drawBicycle(yawAngle, x_g, y_g, block = False, dt = dt)
+    drawBicycle(yawAngle, x_g, y_g, block = False, dt = timeForIteration)
     
 
- 
+    
