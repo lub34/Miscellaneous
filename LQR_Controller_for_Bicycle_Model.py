@@ -200,11 +200,6 @@ with open("optimalPathData.csv", 'r', newline = '') as optimalPathDataFile:
     
     # Draw path
     drawPath(x_data, y_data)
-    
-#---------------------------------------------------------------------------------------------------
-#---------------------------------------------------------------------------------------------------
-
-# Main:
 
 # Get vehicle data based off vehicle model:
 vehicleData = BicycleModel()
@@ -258,7 +253,6 @@ x = np.array([[0.5,
                1,
                -0.0146114,
                -0.1]]).T
-
 
 # Initialize index of desired current and next point along path:
 currentPt = 0
