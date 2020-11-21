@@ -9,8 +9,8 @@ g = 9.81;                   % Gravitational constant [m/s^2]
 M = 2;                      % Point mass on end of pendulum [kg]       
 
 % Define initial conditions
-x0 = [10;                % 5 [rad] deflection from vertical axis         
-     0];                % Mass traveling 0 [rad/s] initially
+x0 = [50;                % 5 [rad] deflection from vertical axis         
+     4];                % Mass traveling 0 [rad/s] initially
 
 % Define matrices for state space equations
 A = [0              1;
@@ -44,8 +44,7 @@ while ((abs(x(1)) ~= 0.0001) || (abs(x(2))) ~= 0.0001 || flag == 10 / 0.07)
     % Update system
     u = -K*x;
     
-    % Will contain new theta and theta_dot values
-    % b/c they are our states
+    % Update the state values
     x = step_X(b, M, L, g, x, u, t);
     
     flag = flag + 1;
@@ -77,15 +76,4 @@ function [X_o] = step_X(b, M, L, g, X_i, u, dt)
     dx4 = compute_pendulum_dx(b, M, L, g,  X_i + dt*dx3, u);
     dxf = (dx1 + 2.0 * dx2 + 2.0 * dx3 + dx4) * dt / 6.0;
     X_o = X_i + dxf;
-    
-    
-    % dx = compute_dendumlum_dx(x, u)
-    % X_o = X_i + dx * dt
 end
-
-
-
-
-
-
-
