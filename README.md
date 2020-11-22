@@ -1,1 +1,1 @@
-# All the code found in this repo is miscellanous code that I use for various projects
+# All the code found in this repo is for miscellaneous projects of mine.
