@@ -300,8 +300,6 @@ while (tracker != 1):
 
     # Update inputs to guide system to desired state
     u = (-K @ x)[0][0]
-    print(x)
-    print(K)
     
     # Get change in state variables 
     dx = get_bicycle_func(u, vehicleData)
@@ -352,14 +350,13 @@ while (tracker != 1):
     e1_dot_test = y_dot + Vx * x[2]
     e2_dot_test = (new_yaw - old_yaw) # / timeForIteration
     
-    """
+    
     print("e1 = " + str(x[0]) + " e1_test = " + str(e1_test) )
     print("e1_dot = " + str(x[1]) + " e1_dot_test = " + str(e1_dot_test) )
     print("e2 = " + str(x[2]) + " e2_test = " + str(e2_test) )
     print("e2_dot = " + str(x[2]) + " e2_dot_test = " + str(e2_dot_test) )
     print()
     print()
-    """
     
     old_yaw = new_yaw
     
