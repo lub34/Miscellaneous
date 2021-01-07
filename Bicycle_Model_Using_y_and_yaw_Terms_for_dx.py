@@ -289,11 +289,6 @@ for i in range(len(inputs)):
     yaw = x[2] + goal_yaw                   # Pretty sure this is extraneous. Gonna keep to be safe. 
     yaw_dot = x[3]
     
-    print("y = " + str(y))
-    print("yaw = " + str(yaw))
-    print("e1 = " + str(x[0]))
-    print("e2_dot = " + str(x[3]))
-    
     x_in_y_and_yaw_terms = np.array([y,
                                    y_dot,
                                    yaw,
@@ -307,16 +302,13 @@ for i in range(len(inputs)):
     # Update state
     # x_y_and_yaw_terms
     x_in_y_and_yaw_terms, dx_norm = step_continuous_func(dx, x_in_y_and_yaw_terms, dt)
-    print(str(x_in_y_and_yaw_terms))
     
     # Update path data index trackers:
     currentPt += 1
     nextPt += 1
     
     # Convert state back to terms of error
-    print(str(x_in_y_and_yaw_terms[0]))
-    x[0] = float(x_in_y_and_yaw_terms[0])
-    e1 = x[0]
+    x[0] = e1 = float(x_in_y_and_yaw_terms[0])
     
     # Update actual and goal (desired) yaw angle
     yaw = x_in_y_and_yaw_terms[2]
@@ -325,11 +317,6 @@ for i in range(len(inputs)):
     x[2] = yaw - goal_yaw
     x[1] = x_in_y_and_yaw_terms[1] + Vx * x[2]
     x[3] = x_in_y_and_yaw_terms[3]
-    
-    print("e1 = {:.4f}".format(float(x[0])))
-    print("e2_dot = " + str(x[3]))
-    print()
-    print()
     
     x_g_old = x_g
     y_g_old = y_g
