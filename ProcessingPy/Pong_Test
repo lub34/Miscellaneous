@@ -1,0 +1,181 @@
+paddleSpeedDelta = 6
+
+
+#------------------------------------------------------------------------------------
+# CREATE CLASSES & FUNCTIONS:
+#------------------------------------------------------------------------------------
+
+class Ball(object):
+    def __init__(self, x, y, diameter):
+        self.x = x
+        self.y = y
+        self.diameter = diameter
+        
+        self.velocityX = 0  # Default x-velocity of 0
+        self.velocityY = 0  # Default y-velocity of 0
+        self.c = 255        # Default ball color: white
+    
+    # Move ball by adding velocity to its position
+    def move(self):
+        self.x += self.velocityX
+        self.y += self.velocityY
+        
+    # Draw the pong ball
+    def display(self):
+        fill(self.c); # Set the drawing color to that desired for the ball
+        ellipse(self.x, self.y, self.diameter, self.diameter)
+        
+    # Functions to help with colliction detection:
+        
+    # Calculate left-most boundary of pong ball
+    def left(self):
+        return self.x - self.diameter/2 # x-coordinate of ball's center minus ball's radius
+    
+    # Calculate right-most boundary of pong ball
+    def right(self):
+        return self.x + self.diameter/2
+    
+    # Calculate lower-most boundary of pong ball
+    def bottom(self):
+        return self.y + self.diameter/2
+    
+    # Calculate upper-most boundary of pong ball
+    def top(self):
+        return self.y - self.diameter/2
+    
+class Paddle(object):
+    def __init__(self, x, y, w, h):
+        self.x = x # x-coord. of paddle center
+        self.y = y # y-coord. of paddle center
+        self.w = w # width of paddle
+        self.h = h # height of paddle
+        
+        self.velocityX = 0  # Default x-velocity of 0
+        self.velocityY = 0  # Default y-velocity of 0
+        self.c = 255        # Default paddle color: white
+        
+    # Move paddle by adding velocity to its position
+    def move(self):
+        self.x += self.velocityX
+        self.y += self.velocityY
+        
+    # Draw the paddle ball
+    def display(self):
+        fill(self.c); # Set the drawing color to that desired for the paddle
+        rect(self.x-self.w/2, self.y-self.h/2, self.w, self.h)
+        
+    # Functions to help with colliction detection:
+        
+    # Calculate left-most boundary of paddle ball
+    def left(self):
+        return self.x - self.w/2 # x-coordinate of paddle's center minus half of paddle's width
+    
+    # Calculate right-most boundary of paddle ball
+    def right(self):
+        return self.x + self.w/2
+    
+    # Calculate lower-most boundary of paddle ball
+    def bottom(self):
+        return self.y + self.h/2
+    
+    # Calculate upper-most boundary of paddle ball
+    def top(self):
+        return self.y - self.h/2    
+    
+# For controlling the paddles
+def userInput():
+    if key == CODED:
+        if keyCode == UP:
+            paddleRight.velocityY = -paddleSpeedDelta
+        elif keyCode == DOWN:
+            paddleRight.velocityY = paddleSpeedDelta
+    else:
+        if key == 'a':
+            paddleLeft.velocityY = -paddleSpeedDelta
+        elif key == 'z':
+            paddleLeft.velocityY = paddleSpeedDelta
+            
+# Processing.py naturally calls this function whenever a key is released!!!
+def keyReleased():
+    if key == CODED:
+        if keyCode == UP or DOWN:
+            paddleRight.velocityY = 0
+    else:
+        if key == 'a' or 'z' :
+            paddleLeft.velocityY = 0
+        
+
+#------------------------------------------------------------------------------------
+# MAIN:
+#------------------------------------------------------------------------------------
+scoreLeft = 0
+scoreRight = 0
+
+def setup():
+    size(948, 710) # Size window to appropriate dimensions 
+    global ball, scoreLeft, scoreRight    # Define global variables [those used in setup() and draw()]
+    ball = Ball(width/2, height/2, 50)    # Define the instance of the ball class as a global variable
+    
+    # Initialize ball's velocity (will send in random direction)
+    ball.velocityX = 5 
+    ball.velocityY = random(-3, 3)
+    
+    global paddleLeft, paddleRight # Define global instances of left and right paddles
+    paddleLeft = Paddle(15, height/2, 30, 200)        # Create left paddle object
+    paddleRight = Paddle(width-15, height/2, 30, 200) # Create right paddle object
+    
+def draw():
+    global ball, scoreLeft, scoreRight
+    background(0)  # Set background color to grayscale value of 0 (black)
+    ball.display() # Draw the ball at its current position in the window
+    paddleLeft.display()  # Draw left paddle
+    paddleRight.display() # Draw right paddle
+    
+    ball.move()    # Calculate new location of ball
+    ball.display() # Display the ball
+    
+    paddleLeft.move()        # Calculate new location of left paddle
+    paddleLeft.display()     # Display the left paddle
+    paddleRight.move()       # Calculate new location of right paddle
+    paddleRight.display()    # Display the right paddle
+    
+    
+    # Use logic to keep ball w/in the window (tests are relative to origin in top-left corner of window)
+    if ((ball.left() < 0) or (ball.right() > width)):
+        ball.velocityX = -ball.velocityX  # flip horizontal component of  velocity
+        
+    if ((ball.top() < 0) or (ball.bottom() > height)):
+        ball.velocityY = -ball.velocityY  # flip vertical component of velocity
+        
+    # See if paddles need to be moved
+    if keyPressed == True:
+        userInput()
+    
+    # Look for ball-on-paddle collision and adjust accordingly
+    if (ball.left() < paddleLeft.right() and ball.y > paddleLeft.top() and ball.y < paddleLeft.bottom()):
+        ball.velocityX = -ball.velocityX
+        ball.velocityY = map(ball.y - paddleLeft.y, -paddleLeft.h/2, paddleLeft.h/2, -10, 10) # This allows for the position of the paddle to alter ball bounce-off trajectory
+        # The mapping in the step above is used to cap the resulting y-velocity to a range of (-10,10) so the ball doesn't go too fast.
+        
+    if (ball.right() > paddleRight.left() and ball.y > paddleRight.top() and ball.y < paddleRight.bottom()):
+        ball.velocityX = -ball.velocityX
+        ball.velocityY = map(ball.y - paddleRight.y, -paddleRight.h/2, paddleRight.h/2, -10, 10) # This allows for the position of the paddle to alter ball bounce-off trajectory
+        # The mapping in the step above is used to cap the resulting y-velocity to a range of (-10,10) so the ball doesn't go too fast.
+         
+    # Adjust and display score:
+    if (ball.right() > width):       # If ball past right-edge of window, +1 to left score
+        scoreLeft += 1
+        ball.x = width/2
+        ball.y = height/2
+        
+    if (ball.left() < 0):            # If ball past left-edge of window, +1 to right score
+        scoreRight += 1
+        ball.x = width/2
+        ball.y = height/2
+    
+    # Display score
+    textSize(40)
+    textAlign(CENTER)
+    text(scoreRight, width/2 + 30, 30)   # Show right side's score
+    text(scoreLeft, width/2 - 30, 30)   # Show left side's score
+        
