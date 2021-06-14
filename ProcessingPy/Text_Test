@@ -1,0 +1,20 @@
+def setup():
+    global f
+    size(948,710) # size(width, height) of viewing window
+    f = createFont("Arial",16)   # Font set to size 16 Arial
+
+def draw():
+    global f
+    background(255)
+    
+    textFont(f,50)                # Can alter font size here!!!      
+    fill(0)                       # Specify next text() output to be black (0). On scale 0-255.
+    textAlign(CENTER)             # Center's next text() ouput          
+    text("I'm centered!",width/2,height/4)
+    
+    textAlign(LEFT)                       
+    text("Im on the right!",width/2,height*2/4)  # Left-aligns's next text() ouput 
+    
+    textAlign(RIGHT)                       
+    text("And Im on the left!",width/2,height*3/4)  # Right-aligns's next text() ouput 
+    
